@@ -160,6 +160,57 @@ BarWidget {
     }
   }
 
+  // Panel title only — the bar's own title slice stays a static ellipsis,
+  // it's meant to be a glance, not something to read while it scrolls by.
+  component MarqueeText: Item {
+    id: marquee
+
+    property string text: ""
+    property color color: Color.foreground
+    property string fontFamily: Style.font.family
+    property real pixelSize: Style.font.title
+    property bool bold: false
+    // Pauses the animation while the panel is closed, so it isn't running
+    // off-screen the whole time a track sits paused.
+    property bool active: true
+
+    readonly property real overflow: Math.max(0, label.implicitWidth - marquee.width)
+
+    implicitHeight: label.implicitHeight
+    clip: true
+
+    onOverflowChanged: if (overflow <= 0) label.x = 0
+
+    Text {
+      id: label
+      textFormat: Text.PlainText
+      text: marquee.text
+      color: marquee.color
+      font.family: marquee.fontFamily
+      font.pixelSize: marquee.pixelSize
+      font.bold: marquee.bold
+      horizontalAlignment: Text.AlignHCenter
+      elide: marquee.overflow > 0 ? Text.ElideNone : Text.ElideRight
+      width: marquee.overflow > 0 ? implicitWidth : marquee.width
+    }
+
+    SequentialAnimation {
+      running: marquee.active && marquee.overflow > 0
+      loops: Animation.Infinite
+
+      PauseAnimation { duration: 900 }
+      NumberAnimation {
+        target: label; property: "x"; to: -marquee.overflow
+        duration: Math.max(1200, marquee.overflow * 18); easing.type: Easing.InOutQuad
+      }
+      PauseAnimation { duration: 900 }
+      NumberAnimation {
+        target: label; property: "x"; to: 0
+        duration: Math.max(1200, marquee.overflow * 18); easing.type: Easing.InOutQuad
+      }
+    }
+  }
+
   visible: hasMedia
   implicitWidth: hasMedia ? thumbSize + (title !== "" && showTitle ? Style.space(6) + titleWidth : 0) : 0
   implicitHeight: barSize
@@ -220,8 +271,7 @@ BarWidget {
     onDoubleClicked: (mouse) => {
       if (!root.hasMedia || mouse.button !== Qt.LeftButton) return
       singleClickTimer.stop()
-      var p = root.activePlayer
-      if (p && p.canPause) p.pause()
+      root.runAction("playPause")
     }
     onEntered: if (root.bar) root.bar.showTooltip(root, root.hasMedia
       ? (root.title + (root.artist ? " — " + root.artist : "")) : "")
@@ -278,16 +328,14 @@ BarWidget {
             width: parent.width
             spacing: Style.space(2)
 
-            Text {
-              textFormat: Text.PlainText
+            MarqueeText {
+              width: parent.width
               text: root.title
               color: root.bar.foreground
-              font.family: root.bar.fontFamily
-              font.pixelSize: Style.font.title
-              font.bold: true
-              horizontalAlignment: Text.AlignHCenter
-              elide: Text.ElideRight
-              width: parent.width
+              fontFamily: root.bar.fontFamily
+              pixelSize: Style.font.title
+              bold: true
+              active: root.panelOpen
             }
 
             Text {

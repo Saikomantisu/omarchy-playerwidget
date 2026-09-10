@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="license" src="https://shieldcn.dev/badge/license-MIT-blue.svg?variant=secondary" /></a>
-  <img alt="version" src="https://shieldcn.dev/badge/version-1.1.0-informational.svg?variant=secondary" />
+  <img alt="version" src="https://shieldcn.dev/badge/version-1.2.0-informational.svg?variant=secondary" />
 </p>
 
 # Player Widget
@@ -66,7 +66,7 @@ up automatically; no other plugin needs to be enabled.
   toggles it off if you'd rather keep just the art.
 - No art available (some players don't expose one) falls back to a music
   note glyph in the same square.
-- Click toggles the panel. Double-click pauses, without opening it.
+- Click toggles the panel. Double-click plays or pauses, without opening it.
 
 ## The panel
 
@@ -74,6 +74,7 @@ Bigger art, title, artist, and three buttons: previous, play/pause, next.
 Deliberately nothing else — no seek bar, no volume, no source switcher.
 Disabled buttons dim rather than disappear, since a track that can't skip
 back is still worth knowing has a "back" button that won't do anything.
+A title too long to fit scrolls back and forth instead of eliding.
 
 ## Layout
 
