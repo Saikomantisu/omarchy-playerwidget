@@ -1,12 +1,14 @@
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Services.Mpris
 import qs.Ui
 import qs.Commons
 
-// Now playing: the album art *is* the bar widget. No glyph, no scrolling
-// title — the bar stays a glance, not a marquee. Click opens the panel,
-// where the art is bigger and the transport controls live.
+// Now playing: the album art is the bar widget, with a short elided slice
+// of the title alongside it — no scrolling marquee, just enough to glance
+// at without opening the panel. Click opens the panel, where the art is
+// bigger, the title has room to breathe, and the transport controls live.
 //
 // Talks to Quickshell.Services.Mpris directly rather than Omarchy's own
 // first-party "omarchy.media" service: firstPartyServiceFor() is scoped to
@@ -59,6 +61,10 @@ BarWidget {
   readonly property string title: activePlayer ? (activePlayer.trackTitle || "") : ""
   readonly property string artist: activePlayer ? (activePlayer.trackArtist || "") : ""
   readonly property real thumbSize: Math.max(Style.space(18), root.barSize - Style.space(6))
+  readonly property real titleWidth: Style.space(72)
+  // Right-click toggles the title slice off, for anyone who'd rather the
+  // bar widget stay just the album-art thumbnail.
+  property bool showTitle: true
 
   property bool panelOpen: false
   function close() { panelOpen = false }
@@ -93,157 +99,243 @@ BarWidget {
     }
   }
 
-  visible: hasMedia
-  implicitWidth: hasMedia ? thumbSize : 0
-  implicitHeight: barSize
+  // Album art tile. The image is masked to the surface radius rather than
+  // just parked inside it: a plain Image paints square corners straight over
+  // a rounded BorderSurface, which is what made the bar thumbnail look boxy.
+  component AlbumArt: BorderSurface {
+    id: surface
 
-  BorderSurface {
-    id: thumb
-    anchors.centerIn: parent
-    width: root.thumbSize
-    height: root.thumbSize
-    radius: Style.cornerRadius > 0 ? Style.cornerRadius : width / 4
-    color: Style.normalFillFor(root.bar ? root.bar.barForeground : Color.foreground, Color.accent)
-    borderSpec: Border.controlSpec(root.isPlaying ? "selected" : "normal",
-      root.bar ? root.bar.barForeground : Color.foreground, Color.accent)
+    property string artSource: ""
+    property color foreground: Color.foreground
+    property string fontFamily: Style.font.family
+    property real glyphSize: Style.font.title
+    property real inset: Style.space(3)
+    // Used when the theme leaves rounding at 0 — art still reads as a tile.
+    property real fallbackRadius: width / 6
 
-    Behavior on color { ColorAnimation { duration: 160 } }
+    radius: Style.cornerRadius > 0 ? Style.cornerRadius : fallbackRadius
+    color: Style.normalFillFor(surface.foreground, Color.accent)
 
-    Image {
+    Item {
+      id: artClip
       anchors.fill: parent
-      anchors.margins: Style.space(2)
-      fillMode: Image.PreserveAspectCrop
-      asynchronous: true
-      source: root.artUrl
-      visible: source !== "" && status === Image.Ready
+      anchors.margins: surface.inset
+      visible: art.status === Image.Ready
+      layer.enabled: true
+      layer.smooth: true
+      layer.effect: MultiEffect {
+        maskEnabled: true
+        maskSource: artMask
+        maskThresholdMin: 0.5
+        maskSpreadAtMin: 0.1
+      }
+
+      Image {
+        id: art
+        anchors.fill: parent
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        source: surface.artSource
+      }
+    }
+
+    Rectangle {
+      id: artMask
+      anchors.fill: artClip
+      radius: Math.max(0, surface.radius - surface.inset)
+      color: "black"
+      visible: false
+      layer.enabled: true
+      layer.smooth: true
     }
 
     Text {
       anchors.centerIn: parent
-      visible: root.artUrl === ""
+      visible: !artClip.visible
       textFormat: Text.PlainText
       text: "󰝚"
-      color: root.bar ? root.bar.barForeground : Color.foreground
-      font.family: root.bar ? root.bar.fontFamily : Style.font.family
-      font.pixelSize: Style.font.title
+      color: surface.foreground
+      font.family: surface.fontFamily
+      font.pixelSize: surface.glyphSize
     }
+  }
+
+  visible: hasMedia
+  implicitWidth: hasMedia ? thumbSize + (title !== "" && showTitle ? Style.space(6) + titleWidth : 0) : 0
+  implicitHeight: barSize
+
+  AlbumArt {
+    id: thumb
+    anchors.verticalCenter: parent.verticalCenter
+    anchors.left: parent.left
+    width: root.thumbSize
+    height: root.thumbSize
+    inset: 0
+    fallbackRadius: width / 4
+    artSource: root.artUrl
+    foreground: root.bar ? root.bar.barForeground : Color.foreground
+    fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
+    glyphSize: Style.font.title
+    borderSpec: Border.controlSpec(root.isPlaying ? "selected" : "normal",
+      root.bar ? root.bar.barForeground : Color.foreground, Color.accent)
+
+    Behavior on color { ColorAnimation { duration: 160 } }
+  }
+
+  Text {
+    id: titleLabel
+    visible: root.title !== "" && root.showTitle
+    anchors.verticalCenter: parent.verticalCenter
+    anchors.left: thumb.right
+    anchors.leftMargin: Style.space(6)
+    textFormat: Text.PlainText
+    text: root.title
+    color: root.bar ? root.bar.barForeground : Color.foreground
+    font.family: root.bar ? root.bar.fontFamily : Style.font.family
+    font.pixelSize: Style.font.bodySmall
+    elide: Text.ElideRight
+    width: visible ? root.titleWidth : 0
   }
 
   MouseArea {
     anchors.fill: parent
     hoverEnabled: true
+    acceptedButtons: Qt.LeftButton | Qt.RightButton
     cursorShape: root.hasMedia ? Qt.PointingHandCursor : Qt.ArrowCursor
-    onClicked: if (root.hasMedia) root.panelOpen = !root.panelOpen
+    onClicked: (mouse) => {
+      if (!root.hasMedia) return
+      if (mouse.button === Qt.RightButton) root.showTitle = !root.showTitle
+      else root.panelOpen = !root.panelOpen
+    }
     onEntered: if (root.bar) root.bar.showTooltip(root, root.hasMedia
       ? (root.title + (root.artist ? " — " + root.artist : "")) : "")
     onExited: if (root.bar) root.bar.hideTooltip(root)
   }
 
+  // Panel layout: art on the left, a centered text + transport stack on the
+  // right, and a small media glyph tucked into the card's top-right corner.
+  // Wide-and-short rather than tall — the title gets room to breathe on one
+  // line instead of wrapping under a big square of art.
   PopupCard {
     id: popup
     anchorItem: root
     bar: root.bar
     owner: root
     open: root.panelOpen
-    contentWidth: popup.fittedContentWidth(Style.space(220))
-    contentHeight: popup.fittedContentHeight(column.implicitHeight)
+    contentWidth: popup.fittedContentWidth(Style.space(340))
+    contentHeight: popup.fittedContentHeight(layout.implicitHeight)
 
-    Column {
-      id: column
+    readonly property real artSize: Style.space(96)
+    // Keeps a long title from eliding into the corner media glyph.
+    readonly property real glyphReserve: Style.space(18)
+
+    Item {
       anchors.fill: parent
-      spacing: Style.space(12)
-
-      BorderSurface {
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: Style.space(132)
-        height: Style.space(132)
-        radius: Style.cornerRadius > 0 ? Style.cornerRadius : width / 6
-        color: Style.normalFillFor(root.bar.foreground, Color.accent)
-        borderSpec: Border.controlSpec("normal", root.bar.foreground, Color.accent)
-
-        Image {
-          anchors.fill: parent
-          anchors.margins: Style.space(3)
-          fillMode: Image.PreserveAspectCrop
-          asynchronous: true
-          source: root.artUrl
-          visible: source !== "" && status === Image.Ready
-        }
-
-        Text {
-          anchors.centerIn: parent
-          visible: root.artUrl === ""
-          textFormat: Text.PlainText
-          text: "󰝚"
-          color: root.bar.foreground
-          font.family: root.bar.fontFamily
-          font.pixelSize: Style.font.displayLarge
-        }
-      }
-
-      Column {
-        width: parent.width
-        spacing: Style.space(2)
-
-        Text {
-          textFormat: Text.PlainText
-          text: root.title
-          color: root.bar.foreground
-          font.family: root.bar.fontFamily
-          font.pixelSize: Style.font.subtitle
-          font.bold: true
-          horizontalAlignment: Text.AlignHCenter
-          elide: Text.ElideRight
-          width: parent.width
-        }
-
-        Text {
-          textFormat: Text.PlainText
-          visible: text !== ""
-          text: root.artist
-          color: Qt.darker(root.bar.foreground, 1.3)
-          font.family: root.bar.fontFamily
-          font.pixelSize: Style.font.bodySmall
-          horizontalAlignment: Text.AlignHCenter
-          elide: Text.ElideRight
-          width: parent.width
-        }
-      }
 
       Row {
-        anchors.horizontalCenter: parent.horizontalCenter
-        spacing: Style.space(6)
+        id: layout
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Style.space(14)
 
-        Button {
-          iconText: "󰒮"
+        AlbumArt {
+          id: art
+          anchors.verticalCenter: parent.verticalCenter
+          width: popup.artSize
+          height: popup.artSize
+          fallbackRadius: width / 8
+          artSource: root.artUrl
           foreground: root.bar.foreground
-          horizontalPadding: Style.spacing.controlPaddingX
-          verticalPadding: Style.spacing.controlPaddingY
-          enabled: root.activePlayer && root.activePlayer.canGoPrevious
-          opacity: enabled ? 1.0 : 0.4
-          onClicked: root.runAction("previous")
+          fontFamily: root.bar.fontFamily
+          glyphSize: Style.font.display
+          borderSpec: Border.controlSpec("normal", root.bar.foreground, Color.accent)
         }
 
-        Button {
-          iconText: root.isPlaying ? "󰏤" : "󰐊"
-          foreground: root.bar.foreground
-          horizontalPadding: Style.spacing.panelGap
-          verticalPadding: Style.spacing.controlPaddingY
-          iconSize: Style.font.iconLarge
-          enabled: root.activePlayer && (root.activePlayer.canTogglePlaying || root.activePlayer.canPlay || root.activePlayer.canPause)
-          opacity: enabled ? 1.0 : 0.4
-          onClicked: root.runAction("playPause")
-        }
+        Column {
+          id: details
+          anchors.verticalCenter: parent.verticalCenter
+          width: Math.max(0, layout.width - art.width - layout.spacing - popup.glyphReserve)
+          spacing: Style.space(12)
 
-        Button {
-          iconText: "󰒭"
-          foreground: root.bar.foreground
-          horizontalPadding: Style.spacing.controlPaddingX
-          verticalPadding: Style.spacing.controlPaddingY
-          enabled: root.activePlayer && root.activePlayer.canGoNext
-          opacity: enabled ? 1.0 : 0.4
-          onClicked: root.runAction("next")
+          Column {
+            width: parent.width
+            spacing: Style.space(2)
+
+            Text {
+              textFormat: Text.PlainText
+              text: root.title
+              color: root.bar.foreground
+              font.family: root.bar.fontFamily
+              font.pixelSize: Style.font.title
+              font.bold: true
+              horizontalAlignment: Text.AlignHCenter
+              elide: Text.ElideRight
+              width: parent.width
+            }
+
+            Text {
+              textFormat: Text.PlainText
+              visible: text !== ""
+              text: root.artist
+              color: Qt.darker(root.bar.foreground, 1.4)
+              font.family: root.bar.fontFamily
+              font.pixelSize: Style.font.bodySmall
+              horizontalAlignment: Text.AlignHCenter
+              elide: Text.ElideRight
+              width: parent.width
+            }
+          }
+
+          Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Style.space(14)
+
+            Button {
+              iconText: "󰒮"
+              foreground: root.bar.foreground
+              iconSize: Style.font.display
+              horizontalPadding: Style.space(6)
+              verticalPadding: Style.space(2)
+              enabled: root.activePlayer && root.activePlayer.canGoPrevious
+              opacity: enabled ? 1.0 : 0.4
+              onClicked: root.runAction("previous")
+            }
+
+            Button {
+              iconText: root.isPlaying ? "󰏤" : "󰐊"
+              foreground: root.bar.foreground
+              iconSize: Style.font.displayLarge
+              horizontalPadding: Style.space(6)
+              verticalPadding: Style.space(2)
+              enabled: root.activePlayer && (root.activePlayer.canTogglePlaying || root.activePlayer.canPlay || root.activePlayer.canPause)
+              opacity: enabled ? 1.0 : 0.4
+              onClicked: root.runAction("playPause")
+            }
+
+            Button {
+              iconText: "󰒭"
+              foreground: root.bar.foreground
+              iconSize: Style.font.display
+              horizontalPadding: Style.space(6)
+              verticalPadding: Style.space(2)
+              enabled: root.activePlayer && root.activePlayer.canGoNext
+              opacity: enabled ? 1.0 : 0.4
+              onClicked: root.runAction("next")
+            }
+          }
         }
+      }
+
+      Text {
+        anchors.top: parent.top
+        anchors.right: parent.right
+        textFormat: Text.PlainText
+        text: "󰎇"
+        color: root.bar.foreground
+        opacity: 0.65
+        font.family: root.bar.fontFamily
+        font.pixelSize: Style.font.icon
       }
     }
   }

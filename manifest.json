@@ -16,6 +16,7 @@
     "displayName": "Player Widget",
     "description": "Album art thumbnail in the bar; click for pause/skip controls",
     "category": "Media",
-    "allowMultiple": false
+    "allowMultiple": false,
+    "defaultSection": "right"
   }
 }
