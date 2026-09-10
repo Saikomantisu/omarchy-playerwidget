@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/gradient.svg?title=Player+Widget&subtitle=Now-playing+album+art+for+the+Omarchy+bar&align=center&theme=violet&mode=dark" />
-    <img alt="Player Widget" src="https://shieldcn.dev/header/gradient.svg?title=Player+Widget&subtitle=Now-playing+album+art+for+the+Omarchy+bar&align=center&theme=violet&mode=light" />
-  </picture>
+  <img alt="Player Widget panel: album art, title, artist, and prev/play-pause/next controls" src="preview.png" />
 </p>
 
 <p align="center">
