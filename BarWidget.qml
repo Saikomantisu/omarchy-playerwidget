@@ -197,6 +197,16 @@ BarWidget {
     width: visible ? root.titleWidth : 0
   }
 
+  // Left click opens the panel, but is held for one interval to see whether
+  // a second click turns it into a double-click (pause) instead — otherwise
+  // a double-click's two onClicked deliveries would flash the panel open
+  // and shut before onDoubleClicked ever fires.
+  Timer {
+    id: singleClickTimer
+    interval: 250
+    onTriggered: root.panelOpen = !root.panelOpen
+  }
+
   MouseArea {
     anchors.fill: parent
     hoverEnabled: true
@@ -205,7 +215,13 @@ BarWidget {
     onClicked: (mouse) => {
       if (!root.hasMedia) return
       if (mouse.button === Qt.RightButton) root.showTitle = !root.showTitle
-      else root.panelOpen = !root.panelOpen
+      else singleClickTimer.restart()
+    }
+    onDoubleClicked: (mouse) => {
+      if (!root.hasMedia || mouse.button !== Qt.LeftButton) return
+      singleClickTimer.stop()
+      var p = root.activePlayer
+      if (p && p.canPause) p.pause()
     }
     onEntered: if (root.bar) root.bar.showTooltip(root, root.hasMedia
       ? (root.title + (root.artist ? " — " + root.artist : "")) : "")

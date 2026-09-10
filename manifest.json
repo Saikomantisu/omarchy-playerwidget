@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.saikomantisu.playerwidget",
   "name": "Player Widget",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Saikomantisu",
   "license": "MIT",
   "description": "Now-playing album art in the bar, with a panel for pause, skip back, and skip forward",

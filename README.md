@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="license" src="https://shieldcn.dev/badge/license-MIT-blue.svg?variant=secondary" /></a>
-  <img alt="version" src="https://shieldcn.dev/badge/version-1.0.0-informational.svg?variant=secondary" />
+  <img alt="version" src="https://shieldcn.dev/badge/version-1.1.0-informational.svg?variant=secondary" />
 </p>
 
 # Player Widget
@@ -66,7 +66,7 @@ up automatically; no other plugin needs to be enabled.
   toggles it off if you'd rather keep just the art.
 - No art available (some players don't expose one) falls back to a music
   note glyph in the same square.
-- Click toggles the panel.
+- Click toggles the panel. Double-click pauses, without opening it.
 
 ## The panel
 
