@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.saikomantisu.playerwidget",
+  "name": "Player Widget",
+  "version": "1.0.0",
+  "author": "Saikomantisu",
+  "license": "MIT",
+  "description": "Now-playing album art in the bar, with a panel for pause, skip back, and skip forward",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Player Widget",
+    "description": "Album art thumbnail in the bar; click for pause/skip controls",
+    "category": "Media",
+    "allowMultiple": false
+  }
+}
