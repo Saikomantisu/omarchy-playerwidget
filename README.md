@@ -31,6 +31,12 @@ custom bar), so an ordinary third-party bar-widget plugin has no route
 to it. Player selection (most-recently-active, preferring one that's
 actively playing) is reimplemented locally to match.
 
+## Screenshots
+
+| Bar (playing, title shown) | Bar (art only) | Panel |
+| --- | --- | --- |
+| ![Bar widget with elided title next to the album art](docs/bar-widget-title.png) | ![Bar widget with the title toggled off, art only](docs/bar-widget-art-only.png) | ![Panel opened from the bar showing full art, title, artist, and prev/play-pause/next controls](docs/panel.png) |
+
 ## Install
 
 ```bash
