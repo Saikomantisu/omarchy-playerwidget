@@ -8,8 +8,6 @@
 <p align="center">
   <a href="LICENSE"><img alt="license" src="https://shieldcn.dev/badge/license-MIT-blue.svg?variant=secondary" /></a>
   <img alt="version" src="https://shieldcn.dev/badge/version-1.0.0-informational.svg?variant=secondary" />
-  <a href="https://omarchy.org/"><img alt="omarchy plugin" src="https://shieldcn.dev/badge/omarchy-plugin-blueviolet.svg?variant=secondary" /></a>
-  <img alt="network" src="https://shieldcn.dev/badge/network-none-success.svg?variant=secondary" />
 </p>
 
 # Player Widget
