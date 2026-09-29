@@ -282,12 +282,13 @@ BarWidget {
   // right, and a small media glyph tucked into the card's top-right corner.
   // Wide-and-short rather than tall — the title gets room to breathe on one
   // line instead of wrapping under a big square of art.
-  PopupCard {
+  KeyboardPanel {
     id: popup
     anchorItem: root
     bar: root.bar
     owner: root
     open: root.panelOpen
+    focusTarget: panelRoot
     contentWidth: popup.fittedContentWidth(Style.space(340))
     contentHeight: popup.fittedContentHeight(layout.implicitHeight)
 
@@ -296,7 +297,10 @@ BarWidget {
     readonly property real glyphReserve: Style.space(18)
 
     Item {
+      id: panelRoot
       anchors.fill: parent
+      focus: true
+      Keys.onEscapePressed: root.close()
 
       Row {
         id: layout
